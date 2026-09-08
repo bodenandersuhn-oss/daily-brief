@@ -1,0 +1,111 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy — Daily Brief</title>
+<style>
+:root {
+  --bg: #fbfaf8; --fg: #1b1b1a; --muted: #6b6a66; --rule: #e2e0da;
+  --link: #1f4fd8; --tag-bg: #efece5;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161715; --fg: #eceae5; --muted: #9b9a94; --rule: #2e302c;
+    --link: #8fb0ff; --tag-bg: #2b2d29;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.6 ui-serif, Georgia, "Times New Roman", serif;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 46rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+header { border-bottom: 2px solid var(--fg); padding-bottom: .75rem; margin-bottom: 2rem; }
+h1 { font-size: 1.6rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+.dateline {
+  font: 500 .78rem/1.4 ui-sans-serif, system-ui, sans-serif;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .07em;
+}
+h2 {
+  font: 600 .8rem/1.4 ui-sans-serif, system-ui, sans-serif;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
+  margin: 2.5rem 0 .75rem; padding-bottom: .4rem; border-bottom: 1px solid var(--rule);
+}
+p { margin: .8rem 0; }
+ul { margin: .8rem 0; padding-left: 1.2rem; }
+li { margin: .35rem 0; }
+a { color: var(--link); }
+.notice {
+  background: var(--tag-bg); border-left: 3px solid var(--muted);
+  padding: .7rem .9rem; margin: 1.2rem 0; font-size: .92rem;
+}
+footer {
+  margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
+  font: .76rem/1.6 ui-sans-serif, system-ui, sans-serif; color: var(--muted);
+}
+</style></head><body><div class="wrap">
+<header>
+  <h1>Privacy Policy</h1>
+  <div class="dateline">Daily Brief &middot; Last updated 8 September 2026</div>
+</header>
+
+<div class="notice">
+  Daily Brief is a personal, single-user project. It is run by one person for
+  their own use and has no other users, no operators, and no commercial purpose.
+</div>
+
+<h2>What this app is</h2>
+<p>
+  Daily Brief assembles a weekday news summary from public RSS feeds and from
+  newsletter emails in the operator's own Gmail account. It runs as a scheduled
+  job on GitHub Actions and publishes a static page to GitHub Pages.
+</p>
+
+<h2>What data it accesses</h2>
+<p>
+  The app requests one Google account permission,
+  <code>gmail.readonly</code>, which allows reading Gmail messages. It is used
+  only to find newsletter emails matching a fixed list of sender and subject
+  queries &mdash; specifically, Wall Street Journal newsletters the operator has
+  subscribed to.
+</p>
+<ul>
+  <li>Only messages matching those queries are read.</li>
+  <li>Only the headline links and short blurbs inside those newsletters are extracted.</li>
+  <li>The app never sends, modifies, deletes, or labels any email. The permission is read-only.</li>
+  <li>No other Google data &mdash; contacts, calendar, files, profile &mdash; is requested or accessed.</li>
+</ul>
+
+<h2>How data is stored and shared</h2>
+<p>
+  Extracted headlines and links are combined with public RSS items, summarized,
+  and written to a public web page of news headlines. Email addresses, message
+  bodies, attachments, and message identifiers are not published and not
+  retained. A local database stores only headline text and URLs, to avoid
+  repeating the same story on later days.
+</p>
+<p>
+  Data is not sold, rented, or shared with third parties. Headlines and blurbs
+  are sent to the Anthropic API solely to generate the summaries that appear on
+  the page.
+</p>
+<p>
+  Google OAuth credentials are stored as encrypted GitHub Actions secrets and
+  are never written to the repository or displayed on the published page.
+</p>
+
+<h2>Retention and revocation</h2>
+<p>
+  Access can be revoked at any time from
+  <a href="https://myaccount.google.com/permissions">Google Account permissions</a>,
+  which immediately and permanently ends the app's ability to read any email.
+</p>
+
+<h2>Contact</h2>
+<p>
+  Questions about this policy: <a href="mailto:bodenanderson27@gmail.com">bodenanderson27@gmail.com</a>
+</p>
+
+<footer>
+  <a href="./">&larr; Back to the brief</a>
+</footer>
+</div></body></html>
