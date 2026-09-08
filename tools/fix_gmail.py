@@ -22,6 +22,7 @@ straight to `gh` so the token is never printed and never hand-copied.
 from __future__ import annotations
 
 import getpass
+import json
 import os
 import subprocess
 import sys
@@ -60,11 +61,53 @@ if not client_id.endswith(".apps.googleusercontent.com"):
 
 print(f"\nProject:      daily-brief-508018")
 print(f"OAuth client: {client_id}")
-print("\nPaste the client secret from the Cloud Console:")
-print("  APIs & Services -> Clients -> Desktop client 1")
-print("Nothing will appear as you paste. Press Return when done.\n")
 
-client_secret = getpass.getpass("Client secret: ").strip()
+
+def secret_from_downloaded_json() -> str | None:
+    """Read the secret out of the JSON the Console hands you.
+
+    Console -> Clients -> Desktop client 1 -> Download JSON. Reading the file
+    beats a blind paste: the two fields sit next to each other on that page and
+    the ID is the easy one to grab by mistake.
+    """
+    candidates = []
+    for folder in (Path.home() / "Downloads", ROOT):
+        candidates.extend(folder.glob("client_secret*.json"))
+    if not candidates:
+        return None
+
+    newest = max(candidates, key=lambda f: f.stat().st_mtime)
+    try:
+        blob = json.loads(newest.read_text())
+    except Exception as exc:
+        print(f"  WARN  could not parse {newest.name}: {exc}")
+        return None
+
+    section = blob.get("installed") or blob.get("web") or {}
+    got_id = (section.get("client_id") or "").strip()
+    got_secret = (section.get("client_secret") or "").strip()
+    if not got_secret:
+        print(f"  WARN  {newest.name} has no client_secret field")
+        return None
+    if got_id and got_id != client_id:
+        print(f"  WARN  {newest.name} is for a DIFFERENT client:")
+        print(f"        {got_id}")
+        print("        Ignoring it — delete it, or re-download the right one.")
+        return None
+
+    print(f"  ok    read the secret from ~/Downloads/{newest.name}")
+    return got_secret
+
+
+client_secret = secret_from_downloaded_json()
+
+if client_secret is None:
+    print("\nNo client_secret*.json found in ~/Downloads.")
+    print("Easiest fix: Console -> Clients -> Desktop client 1 -> Download JSON,")
+    print("then re-run this script. It will pick the file up automatically.")
+    print("\nOr paste the secret now (it starts with 'GOCSPX-', ~35 chars).")
+    print("Nothing will appear as you paste. Press Return when done.\n")
+    client_secret = getpass.getpass("Client secret: ").strip()
 if not client_secret:
     die("No secret entered.")
 
