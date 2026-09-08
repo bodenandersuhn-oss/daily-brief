@@ -67,9 +67,23 @@ print("Nothing will appear as you paste. Press Return when done.\n")
 client_secret = getpass.getpass("Client secret: ").strip()
 if not client_secret:
     die("No secret entered.")
+
+# The ID and the secret sit next to each other on the Console page and the
+# prompt is blind, so pasting the ID here is the easy mistake. Google answers
+# it with "invalid_client" only after the whole browser dance, so catch it now.
+if client_secret == client_id or client_secret.endswith(".apps.googleusercontent.com"):
+    die("That is the client ID, not the client secret.\n"
+        "        The secret is the OTHER value on that page: about 35\n"
+        "        characters, starting with 'GOCSPX-'.")
 if len(client_secret) < 24:
     die(f"That secret is only {len(client_secret)} characters, so it is "
         "truncated.\n        Google's look like 'GOCSPX-' plus ~28 more.")
+if len(client_secret) > 60:
+    die(f"That value is {len(client_secret)} characters — far too long for a\n"
+        "        client secret (~35). You likely pasted the wrong field.")
+if not client_secret.startswith("GOCSPX-"):
+    print(f"  WARN  secret does not start with 'GOCSPX-' — continuing, but if\n"
+          "        this fails with invalid_client, that is why")
 print(f"  ok    read a {len(client_secret)}-character secret")
 print("A browser window will open. Approve access for the Gmail account that\n"
       "receives your WSJ newsletters.\n")
