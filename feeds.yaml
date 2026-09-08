@@ -1,0 +1,101 @@
+# feeds.yaml — every source for the daily brief.
+# Edit freely; no code changes needed. Delete a feed by removing its list entry.
+# Every URL here was verified to return valid XML on 2026-09-08.
+
+settings:
+  # Some government feeds (notably BLS) reject generic browser user-agents.
+  # A descriptive UA with contact info is what gets through. Keep it descriptive.
+  user_agent: "daily-brief/1.0 (+personal news aggregator; contact: bodenandersuhn@gmail.com)"
+  timeout_seconds: 20
+  lookback_hours: 24
+  monday_lookback_hours: 72   # covers the weekend
+  max_items_per_section: 5
+  max_items_per_feed: 40
+  # Title-similarity threshold for collapsing the same story across outlets.
+  # Higher = stricter (fewer merges). 0.0-1.0.
+  similarity_threshold: 0.72
+  # How many days of history to check before re-running a story.
+  repeat_window_days: 7
+
+# WSJ newsletter emails, pulled from Gmail. Subscribe to these yourself;
+# the query below finds them. `section` routes each newsletter's items.
+gmail:
+  enabled: true
+  newsletters:
+    - name: "WSJ Markets A.M."
+      query: 'from:(dowjones.com OR wsj.com) subject:"Markets A.M."'
+      section: us_economy
+    - name: "WSJ Real Time Economics"
+      query: 'from:(dowjones.com OR wsj.com) subject:"Real Time Economics"'
+      section: us_economy
+    - name: "WSJ Tech"
+      query: 'from:(dowjones.com OR wsj.com) (subject:"WSJ Tech" OR subject:"Technology")'
+      section: ai_news
+
+# Four sections, fixed order. Do not reorder — the brief and the weekly
+# roll-up both depend on this order.
+sections:
+  - id: us_economy
+    title: "US economy"
+    feeds:
+      - {outlet: "BLS",            name: "Latest releases",        url: "https://www.bls.gov/feed/bls_latest.rss"}
+      - {outlet: "BLS",            name: "Employment Situation",   url: "https://www.bls.gov/feed/empsit.rss"}
+      - {outlet: "BLS",            name: "CPI",                    url: "https://www.bls.gov/feed/cpi.rss"}
+      - {outlet: "BEA",            name: "News releases",          url: "https://apps.bea.gov/rss/rss.xml"}
+      - {outlet: "Federal Reserve", name: "Press releases",        url: "https://www.federalreserve.gov/feeds/press_all.xml"}
+      - {outlet: "Federal Reserve", name: "Monetary policy",       url: "https://www.federalreserve.gov/feeds/press_monetary.xml"}
+      - {outlet: "Federal Reserve", name: "Speeches",              url: "https://www.federalreserve.gov/feeds/speeches.xml"}
+      - {outlet: "FRED",           name: "FRED Blog",              url: "https://fredblog.stlouisfed.org/feed/"}
+      - {outlet: "Census Bureau",  name: "Economic indicators",    url: "https://www.census.gov/economic-indicators/indicator.xml"}
+      - {outlet: "WSJ",            name: "Markets",                url: "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain"}
+      - {outlet: "WSJ",            name: "Economy",                url: "https://feeds.content.dowjones.io/public/rss/socialeconomyfeed"}
+      - {outlet: "WSJ",            name: "US Business",            url: "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml"}
+      - {outlet: "CNBC",           name: "Economy",                url: "https://www.cnbc.com/id/20910258/device/rss/rss.html"}
+      - {outlet: "MarketWatch",    name: "Top stories",            url: "https://feeds.content.dowjones.io/public/rss/mw_topstories"}
+      - {outlet: "NPR",           name: "Business",               url: "https://feeds.npr.org/1006/rss.xml"}
+
+  - id: international
+    title: "International economies"
+    feeds:
+      - {outlet: "ECB",            name: "Press releases",         url: "https://www.ecb.europa.eu/rss/press.html"}
+      - {outlet: "Bank of England", name: "News",                  url: "https://www.bankofengland.co.uk/rss/news"}
+      - {outlet: "Bank of England", name: "Publications",          url: "https://www.bankofengland.co.uk/rss/publications"}
+      - {outlet: "Bank of Japan",  name: "What's new",             url: "https://www.boj.or.jp/en/rss/whatsnew.xml"}
+      - {outlet: "European Commission", name: "Press corner",      url: "https://ec.europa.eu/commission/presscorner/api/rss?language=en"}
+      - {outlet: "BBC",            name: "World",                  url: "https://feeds.bbci.co.uk/news/world/rss.xml"}
+      - {outlet: "BBC",            name: "Business",               url: "https://feeds.bbci.co.uk/news/business/rss.xml"}
+      - {outlet: "The Guardian",   name: "Business",               url: "https://www.theguardian.com/uk/business/rss"}
+      - {outlet: "The Guardian",   name: "World",                  url: "https://www.theguardian.com/world/rss"}
+      - {outlet: "WSJ",            name: "World News",             url: "https://feeds.a.dj.com/rss/RSSWorldNews.xml"}
+
+  - id: ai_infra
+    title: "AI infrastructure & energy"
+    feeds:
+      - {outlet: "EIA",            name: "Today in Energy",        url: "https://www.eia.gov/rss/todayinenergy.xml"}
+      - {outlet: "EIA",            name: "Press releases",         url: "https://www.eia.gov/rss/press_rss.xml"}
+      - {outlet: "Data Center Dynamics", name: "News",             url: "https://www.datacenterdynamics.com/rss/"}
+      - {outlet: "Data Center Knowledge", name: "News",            url: "https://www.datacenterknowledge.com/rss.xml"}
+      - {outlet: "Utility Dive",   name: "News",                   url: "https://www.utilitydive.com/feeds/news/"}
+      - {outlet: "Microsoft",      name: "Microsoft Source",       url: "https://news.microsoft.com/source/feed/"}
+      - {outlet: "Microsoft",      name: "Newsroom",               url: "https://news.microsoft.com/feed/"}
+      - {outlet: "Alphabet",       name: "The Keyword",            url: "https://blog.google/rss/"}
+      - {outlet: "Google Cloud",   name: "Blog",                   url: "https://cloudblog.withgoogle.com/rss/"}
+      - {outlet: "Amazon",         name: "About Amazon news",      url: "https://www.aboutamazon.com/news/feed"}
+      - {outlet: "AWS",            name: "What's New",             url: "https://aws.amazon.com/about-aws/whats-new/recent/feed/"}
+      - {outlet: "Meta",           name: "Newsroom",               url: "https://about.fb.com/news/feed/"}
+      - {outlet: "Nvidia",         name: "Investor press releases", url: "https://investor.nvidia.com/rss/pressrelease.aspx"}
+      - {outlet: "Nvidia",         name: "Newsroom",               url: "https://nvidianews.nvidia.com/releases.xml"}
+      - {outlet: "Nvidia",         name: "Blog",                   url: "https://blogs.nvidia.com/feed/"}
+
+  - id: ai_news
+    title: "AI news"
+    feeds:
+      - {outlet: "OpenAI",         name: "News",                   url: "https://openai.com/news/rss.xml"}
+      - {outlet: "Google DeepMind", name: "Blog",                  url: "https://deepmind.google/blog/rss.xml"}
+      # arXiv announcement feeds are valid but empty outside the announcement
+      # cycle. An empty feed is normal here, not an error.
+      - {outlet: "arXiv",          name: "cs.AI new submissions",  url: "https://rss.arxiv.org/rss/cs.AI"}
+      - {outlet: "arXiv",          name: "cs.LG new submissions",  url: "https://rss.arxiv.org/rss/cs.LG"}
+      - {outlet: "Hacker News",    name: "Front page (>200 pts)",  url: "https://hnrss.org/frontpage?points=200"}
+      - {outlet: "MIT Tech Review", name: "Artificial intelligence", url: "https://www.technologyreview.com/topic/artificial-intelligence/feed"}
+      - {outlet: "WSJ",            name: "Tech",                   url: "https://feeds.a.dj.com/rss/RSSWSJD.xml"}
