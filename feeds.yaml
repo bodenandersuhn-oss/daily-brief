@@ -83,7 +83,6 @@ sections:
       - {outlet: "Amazon",         name: "About Amazon news",      url: "https://www.aboutamazon.com/news/feed"}
       - {outlet: "AWS",            name: "What's New",             url: "https://aws.amazon.com/about-aws/whats-new/recent/feed/"}
       - {outlet: "Meta",           name: "Newsroom",               url: "https://about.fb.com/news/feed/"}
-      - {outlet: "Nvidia",         name: "Investor press releases", url: "https://investor.nvidia.com/rss/pressrelease.aspx"}
       - {outlet: "Nvidia",         name: "Newsroom",               url: "https://nvidianews.nvidia.com/releases.xml"}
       - {outlet: "Nvidia",         name: "Blog",                   url: "https://blogs.nvidia.com/feed/"}
 
