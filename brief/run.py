@@ -54,6 +54,19 @@ def print_brief(cfg, brief: dict, when: datetime, degraded: bool) -> None:
     print(f"{bar}\n")
 
 
+def _exit_code(broken: list[str]) -> int:
+    """Fail the run when a configured source is broken, even though the brief
+    published. Otherwise a green check in Actions says nothing about whether
+    the brief is complete."""
+    if not broken:
+        return 0
+    for source in broken:
+        log.error("BROKEN SOURCE: %s", source)
+    log.error("Brief published, but %d source(s) are broken — failing the run.",
+              len(broken))
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="brief", description=__doc__)
     parser.add_argument(
@@ -88,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
         (now - cutoff).total_seconds() / 3600,
     )
 
-    items = fetch_all(cfg, cutoff)
+    items, broken = fetch_all(cfg, cutoff)
 
     with SeenStore() as store:
         fresh = dedupe(items, cfg, store)
@@ -114,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         print_brief(cfg, brief, local_now, degraded)
         log.info("--dry-run: nothing published, nothing pushed")
-        return 0
+        return _exit_code(broken)
 
     # A re-run on the same day finds nothing new (the first run recorded it
     # all as seen) and would otherwise overwrite that morning's page with an
@@ -126,12 +139,12 @@ def main(argv: list[str] | None = None) -> int:
                 "Empty brief but docs/%s already exists — leaving it in place, "
                 "not pushing. Use --no-record for repeatable test runs.", slug
             )
-            return 0
+            return _exit_code(broken)
         log.info("Nothing significant today; publishing an empty brief")
 
     slug = publish_mod.publish(cfg, brief, local_now, degraded)
     log.info("Done: %s", slug)
-    return 0
+    return _exit_code(broken)
 
 
 if __name__ == "__main__":

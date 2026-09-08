@@ -207,8 +207,17 @@ def fetch_rss(cfg: Config, cutoff: datetime) -> list[Item]:
 # Gmail — WSJ newsletters
 # --------------------------------------------------------------------------
 
+class GmailAuthError(RuntimeError):
+    """Gmail is configured but Google rejected the credentials."""
+
+
 def _gmail_service():
-    """Build a Gmail client from a refresh token. Returns None if unconfigured."""
+    """Build a Gmail client from a refresh token. Returns None if unconfigured.
+
+    Raises GmailAuthError if it *is* configured and the refresh is rejected —
+    that is a broken pipeline, not an optional source, and must not pass as a
+    warning.
+    """
     client_id = env("GMAIL_CLIENT_ID")
     client_secret = env("GMAIL_CLIENT_SECRET")
     refresh_token = env("GMAIL_REFRESH_TOKEN")
@@ -232,8 +241,7 @@ def _gmail_service():
         creds.refresh(Request())
         return build("gmail", "v1", credentials=creds, cache_discovery=False)
     except Exception as exc:
-        log.warning("Gmail auth failed — skipping newsletters: %s", exc)
-        return None
+        raise GmailAuthError(exc) from exc
 
 
 def _decode_part(part) -> str:
@@ -392,11 +400,23 @@ def fetch_gmail(cfg: Config, cutoff: datetime) -> list[Item]:
     return items
 
 
-def fetch_all(cfg: Config, cutoff: datetime) -> list[Item]:
+def fetch_all(cfg: Config, cutoff: datetime) -> tuple[list[Item], list[str]]:
+    """Fetch everything. Returns (items, broken).
+
+    `broken` lists sources that are configured but not working. The brief still
+    publishes without them — half a brief beats none — but the caller exits
+    non-zero so the run does not report success. A silent warning here is how
+    the WSJ half stayed dead for a day behind a green checkmark.
+    """
     items = fetch_rss(cfg, cutoff)
+    broken: list[str] = []
     try:
         items.extend(fetch_gmail(cfg, cutoff))
+    except GmailAuthError as exc:
+        log.error("Gmail auth failed — newsletters missing from this brief: %s", exc)
+        broken.append(f"Gmail auth rejected ({exc})")
     except Exception as exc:  # belt and braces: Gmail must never kill the run
-        log.warning("Gmail stage failed entirely — continuing without it: %s", exc)
+        log.error("Gmail stage failed entirely: %s", exc)
+        broken.append(f"Gmail stage failed ({exc})")
     log.info("Fetched %d items total", len(items))
-    return items
+    return items, broken
