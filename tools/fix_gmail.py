@@ -4,9 +4,10 @@ BEFORE it goes anywhere near the repo secret.
 
 Run this in your OWN terminal:
 
-    export GMAIL_CLIENT_ID='...'
-    export GMAIL_CLIENT_SECRET='...'
     .venv/bin/python tools/fix_gmail.py
+
+It asks for the client secret at a hidden prompt, so nothing needs pasting
+into the command line and the secret never reaches your shell history.
 
 It opens a browser for consent, then checks three things in order:
 
@@ -20,6 +21,7 @@ straight to `gh` so the token is never printed and never hand-copied.
 
 from __future__ import annotations
 
+import getpass
 import os
 import subprocess
 import sys
@@ -40,22 +42,35 @@ def die(msg: str) -> None:
     sys.exit(f"\n  FAIL  {msg}\n")
 
 
-client_id = os.environ.get("GMAIL_CLIENT_ID", "").strip()
-client_secret = os.environ.get("GMAIL_CLIENT_SECRET", "").strip()
-if not client_id or not client_secret:
-    die("Set GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET in your environment first.")
+# The client ID is not a secret — installed apps ship it by design — so it is
+# the default here and nothing has to be pasted into the command line. The
+# secret IS one, so it is prompted for rather than passed as an argument or an
+# env var: that keeps it out of shell history, scrollback, and `ps`.
+CLIENT_ID = "1058943061827-74lkentv2cjjuotcbdc6221kk2kpoj8i.apps.googleusercontent.com"
+
+client_id = (os.environ.get("GMAIL_CLIENT_ID") or CLIENT_ID).strip()
 
 # A truncated or mistyped client ID fails at the consent screen with
 # "OAuth client was not found" (401 invalid_client), which looks alarming but
 # just means the string never reached a real client. Catch the shape here.
 if not client_id.endswith(".apps.googleusercontent.com"):
-    die("GMAIL_CLIENT_ID does not end in '.apps.googleusercontent.com'.\n"
+    die("Client ID does not end in '.apps.googleusercontent.com'.\n"
         f"        Got {len(client_id)} chars ending '{client_id[-14:]}'.\n"
         "        It was truncated or mis-pasted. Copy the whole value.")
-if len(client_secret) < 24:
-    die(f"GMAIL_CLIENT_SECRET is only {len(client_secret)} chars — truncated.")
 
-print(f"\nOAuth client: ...{client_id[-40:]}")
+print(f"\nProject:      daily-brief-508018")
+print(f"OAuth client: {client_id}")
+print("\nPaste the client secret from the Cloud Console:")
+print("  APIs & Services -> Clients -> Desktop client 1")
+print("Nothing will appear as you paste. Press Return when done.\n")
+
+client_secret = getpass.getpass("Client secret: ").strip()
+if not client_secret:
+    die("No secret entered.")
+if len(client_secret) < 24:
+    die(f"That secret is only {len(client_secret)} characters, so it is "
+        "truncated.\n        Google's look like 'GOCSPX-' plus ~28 more.")
+print(f"  ok    read a {len(client_secret)}-character secret")
 print("A browser window will open. Approve access for the Gmail account that\n"
       "receives your WSJ newsletters.\n")
 
