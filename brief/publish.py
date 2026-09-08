@@ -225,21 +225,21 @@ def send_push(cfg: Config, brief: dict, when: datetime, slug: str) -> bool:
         return False
 
     url = pages_url(slug)
-    headers = {
-        "Title": f"Morning Brief — {when.strftime('%b %-d')}",
-        "Priority": "default",
-        "Tags": "newspaper",
+    # ntfy's JSON endpoint, not the header-based one: HTTP headers are
+    # latin-1, and the title contains an em dash. Headlines routinely carry
+    # curly quotes and accents too, so JSON is the only safe channel here.
+    payload = {
+        "topic": topic,
+        "title": f"Morning Brief — {when.strftime('%b %-d')}",
+        "message": push_body(cfg, brief),
+        "tags": ["newspaper"],
+        "priority": 3,
     }
     if url:
-        headers["Click"] = url
+        payload["click"] = url
 
     try:
-        response = httpx.post(
-            f"https://ntfy.sh/{topic}",
-            content=push_body(cfg, brief).encode("utf-8"),
-            headers=headers,
-            timeout=20,
-        )
+        response = httpx.post("https://ntfy.sh/", json=payload, timeout=20)
         response.raise_for_status()
     except Exception as exc:
         log.error("ntfy push failed: %s", exc)
