@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 from . import publish as publish_mod
 from . import summarize as summarize_mod
-from .config import CENTRAL, load_config
+from .config import CENTRAL, DOCS_DIR, load_config
 from .dedupe import SeenStore, dedupe
 from .fetch import fetch_all
 
@@ -115,6 +115,19 @@ def main(argv: list[str] | None = None) -> int:
         print_brief(cfg, brief, local_now, degraded)
         log.info("--dry-run: nothing published, nothing pushed")
         return 0
+
+    # A re-run on the same day finds nothing new (the first run recorded it
+    # all as seen) and would otherwise overwrite that morning's page with an
+    # empty one and push it. A genuinely quiet first run still publishes.
+    slug = publish_mod.slug_for(local_now)
+    if not any(brief.get(section.id) for section in cfg.sections):
+        if (DOCS_DIR / slug).exists():
+            log.warning(
+                "Empty brief but docs/%s already exists — leaving it in place, "
+                "not pushing. Use --no-record for repeatable test runs.", slug
+            )
+            return 0
+        log.info("Nothing significant today; publishing an empty brief")
 
     slug = publish_mod.publish(cfg, brief, local_now, degraded)
     log.info("Done: %s", slug)

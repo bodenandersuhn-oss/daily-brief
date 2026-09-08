@@ -160,9 +160,13 @@ def render_html(
     return "\n".join(parts)
 
 
+def slug_for(when: datetime) -> str:
+    return when.strftime("%Y-%m-%d") + ".html"
+
+
 def write_pages(cfg: Config, brief: dict, when: datetime, degraded: bool = False) -> str:
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
-    slug = when.strftime("%Y-%m-%d") + ".html"
+    slug = slug_for(when)
 
     (DOCS_DIR / slug).write_text(
         render_html(cfg, brief, when, degraded), encoding="utf-8"
