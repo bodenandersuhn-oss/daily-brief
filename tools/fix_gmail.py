@@ -43,33 +43,17 @@ def die(msg: str) -> None:
     sys.exit(f"\n  FAIL  {msg}\n")
 
 
-# The client ID is not a secret — installed apps ship it by design — so it is
-# the default here and nothing has to be pasted into the command line. The
-# secret IS one, so it is prompted for rather than passed as an argument or an
-# env var: that keeps it out of shell history, scrollback, and `ps`.
-CLIENT_ID = "1058943061827-74lkentv2cjjuotcbdc6221kk2kpoj8i.apps.googleusercontent.com"
-
-client_id = (os.environ.get("GMAIL_CLIENT_ID") or CLIENT_ID).strip()
-
-# A truncated or mistyped client ID fails at the consent screen with
-# "OAuth client was not found" (401 invalid_client), which looks alarming but
-# just means the string never reached a real client. Catch the shape here.
-if not client_id.endswith(".apps.googleusercontent.com"):
-    die("Client ID does not end in '.apps.googleusercontent.com'.\n"
-        f"        Got {len(client_id)} chars ending '{client_id[-14:]}'.\n"
-        "        It was truncated or mis-pasted. Copy the whole value.")
-
-print(f"\nProject:      daily-brief-508018")
-print(f"OAuth client: {client_id}")
+# Both values come from the JSON the Console hands you when a client is
+# created. Neither the original secret for "Desktop client 1" nor for
+# "Desktop client 2" is retrievable — Google's Auth Platform and the older
+# Credentials page both dropped secret display and Download JSON, so the file
+# saved at creation time is the only copy. Create a client, download its JSON,
+# run this.
+FALLBACK_CLIENT_ID = "1058943061827-74lkentv2cjjuotcbdc6221kk2kpoj8i.apps.googleusercontent.com"
 
 
-def secret_from_downloaded_json() -> str | None:
-    """Read the secret out of the JSON the Console hands you.
-
-    Console -> Clients -> Desktop client 1 -> Download JSON. Reading the file
-    beats a blind paste: the two fields sit next to each other on that page and
-    the ID is the easy one to grab by mistake.
-    """
+def credentials_from_downloaded_json():
+    """Return (client_id, client_secret) from the newest client_secret*.json."""
     candidates = []
     for folder in (Path.home() / "Downloads", ROOT):
         candidates.extend(folder.glob("client_secret*.json"))
@@ -86,28 +70,53 @@ def secret_from_downloaded_json() -> str | None:
     section = blob.get("installed") or blob.get("web") or {}
     got_id = (section.get("client_id") or "").strip()
     got_secret = (section.get("client_secret") or "").strip()
-    if not got_secret:
-        print(f"  WARN  {newest.name} has no client_secret field")
-        return None
-    if got_id and got_id != client_id:
-        print(f"  WARN  {newest.name} is for a DIFFERENT client:")
-        print(f"        {got_id}")
-        print("        Ignoring it — delete it, or re-download the right one.")
+    if not (got_id and got_secret):
+        print(f"  WARN  {newest.name} is missing client_id or client_secret")
         return None
 
-    print(f"  ok    read the secret from ~/Downloads/{newest.name}")
-    return got_secret
+    print(f"  ok    read credentials from {newest.name}")
+    return got_id, got_secret
 
 
-client_secret = secret_from_downloaded_json()
+print("\nProject: daily-brief-508018")
 
-if client_secret is None:
+found = credentials_from_downloaded_json()
+
+if found:
+    client_id, client_secret = found
+else:
     print("\nNo client_secret*.json found in ~/Downloads.")
-    print("Easiest fix: Console -> Clients -> Desktop client 1 -> Download JSON,")
-    print("then re-run this script. It will pick the file up automatically.")
-    print("\nOr paste the secret now (it starts with 'GOCSPX-', ~35 chars).")
-    print("Nothing will appear as you paste. Press Return when done.\n")
+    print("In the Cloud Console: APIs & Services -> Credentials ->")
+    print("Create credentials -> OAuth client ID -> Desktop app -> Create,")
+    print("then DOWNLOAD JSON from the dialog that appears. That dialog is the")
+    print("only place the secret is ever shown. Re-run this afterwards.\n")
+    print("Or paste a secret now for the existing client, if you still have it")
+    print("(starts with 'GOCSPX-'). Nothing appears as you paste.\n")
+    client_id = (os.environ.get("GMAIL_CLIENT_ID") or FALLBACK_CLIENT_ID).strip()
     client_secret = getpass.getpass("Client secret: ").strip()
+
+if not client_id.endswith(".apps.googleusercontent.com"):
+    die("Client ID does not end in '.apps.googleusercontent.com'.\n"
+        f"        Got {len(client_id)} chars ending '{client_id[-14:]}'.")
+if not client_secret:
+    die("No secret found or entered.")
+
+# The ID and the secret look nothing alike, but the ID is the one the Console
+# offers a copy button for, so it is the easy thing to supply by mistake.
+if client_secret == client_id or client_secret.endswith(".apps.googleusercontent.com"):
+    die("That is the client ID, not the client secret.\n"
+        "        The secret is about 35 characters, starting 'GOCSPX-'.")
+if len(client_secret) < 24:
+    die(f"That secret is only {len(client_secret)} characters, so it is "
+        "truncated.\n        Google's look like 'GOCSPX-' plus ~28 more.")
+if len(client_secret) > 60:
+    die(f"That value is {len(client_secret)} characters — far too long for a\n"
+        "        client secret (~35). You likely supplied the wrong field.")
+if not client_secret.startswith("GOCSPX-"):
+    print("  WARN  secret does not start with 'GOCSPX-' — continuing, but if\n"
+          "        this fails with invalid_client, that is why")
+
+print(f"OAuth client: {client_id}")
 if not client_secret:
     die("No secret entered.")
 
@@ -200,15 +209,29 @@ if not total:
           "        Subscribe at wsj.com/newsletters, wait for one to arrive,\n"
           "        then re-run. The token below is still good.")
 
-# 4. Write the secret without the token ever being displayed or hand-copied.
+# 4. Write all three secrets, piped to `gh` so nothing is displayed or
+#    hand-copied. All three must come from the same OAuth client — a token
+#    from one client with another client's ID is exactly the invalid_grant
+#    this script exists to prevent, so they are written together or not at all.
 print()
-if input(f"Write GMAIL_REFRESH_TOKEN to {REPO}? [y/N] ").strip().lower() == "y":
+print("Ready to write these to " + REPO + ":")
+print("  GMAIL_CLIENT_ID       " + client_id)
+print("  GMAIL_CLIENT_SECRET   (hidden, from the same client)")
+print("  GMAIL_REFRESH_TOKEN   (hidden, just minted)")
+
+if input("\nWrite them? [y/N] ").strip().lower() != "y":
+    sys.exit("  Nothing written. Re-run when you are ready.\n")
+
+for name, value in (
+    ("GMAIL_CLIENT_ID", client_id),
+    ("GMAIL_CLIENT_SECRET", client_secret),
+    ("GMAIL_REFRESH_TOKEN", token),
+):
     proc = subprocess.run(
-        ["gh", "secret", "set", "GMAIL_REFRESH_TOKEN", "--repo", REPO],
-        input=token, text=True,
+        ["gh", "secret", "set", name, "--repo", REPO], input=value, text=True,
     )
     if proc.returncode:
-        die("gh failed — is `gh auth status` healthy?")
-    print("  ok    secret updated. Now: Actions -> Daily brief -> Run workflow.")
-else:
-    print("  Nothing written. Re-run when you are ready.")
+        die(f"gh failed writing {name} — is `gh auth status` healthy?")
+    print(f"  ok    wrote {name}")
+
+print("\n  All three secrets updated. Next: Actions -> Daily brief -> Run workflow.")
